@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {FaPlus, FaPencilAlt, FaTrash} from 'react-icons/fa'
+import {db} from './Firebase'
+import {onSnapshot, collection, addDoc, doc, updateDoc, deleteDoc} from "firebase/firestore"
 
 function App() {
     const [todos, settodos] = useState([
@@ -16,9 +18,9 @@ function App() {
     const addTodo = async () => {
       try {
         if(input.trim!=''){
-          settodos([...todos, {id: new Date(), todo:input }])
+          // settodos([...todos, {id: new Date(), todo:input }])
+          await addDoc(collection(db, 'todos'), {todo:input})
           setinput('')
-         
         }
       } catch (error) {
         console.log(error.message)
@@ -28,9 +30,13 @@ function App() {
     const updateTodo = async () => {
       try {
         if(input.trim!=''){const updatedtodos=[...todos]
-      updatedtodos[editIndex].todo=input;
+      // updatedtodos[editIndex].todo=input;
       
-      settodos(updatedtodos);
+      // settodos(updatedtodos);
+      // seteditIndex(-1)
+
+      const todoref=doc(db, 'todos', todos[editIndex].id);
+      await updateDoc(todoref, {todo: input})
       seteditIndex(-1)
       setinput('')}
       } catch (error) {
@@ -39,9 +45,25 @@ function App() {
     }
 
     const removetodo=async(id)=>{
-      let filteredtodos=todos.filter((todo)=>todo.id!=id)
-      settodos(filteredtodos);
+      // let filteredtodos=todos.filter((todo)=>todo.id!=id)
+      // settodos(filteredtodos);
+
+      try {
+        await deleteDoc(doc(db,'todos',id))
+      } catch (error) {
+        console.log(error.message)
+      }
     }
+
+    useEffect(()=>{
+      const unsubscribe=onSnapshot(collection(db, 'todos'), (snapshot)=>{   
+        settodos(snapshot.docs.map((doc)=>({id:doc.id, todo:doc.data().todo})));
+      
+    });
+
+    return ()=>unsubscribe()
+
+  },[])
 
   return (
     <>
